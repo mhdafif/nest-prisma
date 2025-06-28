@@ -27,3 +27,13 @@ export class CreateUserDTO {
   @IsOptional()
   blocked: boolean;
 }
+
+export class LoginDTO {
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
+
+  @IsNotEmpty()
+  @IsString()
+  password: string;
+}

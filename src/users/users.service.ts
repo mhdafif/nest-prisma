@@ -1,12 +1,32 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
-import { CreateUserDTO } from './create-user-dto';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { CreateUserDTO, LoginDTO } from './user-dto';
 import { IUserResponse } from './user';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from 'src/prisma.service';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private jwtService: JwtService,
+  ) {}
+
+  async encryptPassword(plainText: string, saltRounds = 10): Promise<string> {
+    // const salt = await bcrypt.genSalt(saltRounds);
+    // const hash = await bcrypt.hash(plainText, salt);
+
+    // or
+    // const hash = await bcrypt.hash(plainText, saltRounds);
+    return await bcrypt.hash(plainText, saltRounds);
+  }
+  async decryptPassword(plainText: string, hash: string): Promise<boolean> {
+    return await bcrypt.compare(plainText, hash);
+  }
 
   async signup(payload: CreateUserDTO): Promise<IUserResponse> {
     const existingUser = await this.prisma.user.findFirst({
@@ -34,25 +54,36 @@ export class UsersService {
       select: {
         id: true,
         email: true,
-        // firstName: true,
-        // lastName: true,
-        // createdAt: true,
-        // updatedAt: true,
       },
     });
-    // save user password in ecrypted format - bycriptjs
-    // save the user in the db
-    // return id & email
   }
 
-  async encryptPassword(plainText: string, saltRounds = 10): Promise<string> {
-    // const salt = await bcrypt.genSalt(saltRounds);
-    // const hash = await bcrypt.hash(plainText, salt);
+  async login(loginDTO: LoginDTO): Promise<{ accessToken: string }> {
+    // find user based on email
+    const user = await this.prisma.user.findFirst({
+      where: {
+        email: loginDTO.email,
+      },
+    });
+    if (!user) {
+      throw new UnauthorizedException();
+    }
 
-    // or
-    const hash = await bcrypt.hash(plainText, saltRounds);
-    // return await bcrypt.hash(plainText, salt);
+    const isMatchedPassword = await this.decryptPassword(
+      loginDTO.password,
+      user.password || '',
+    );
+    if (!isMatchedPassword) {
+      throw new UnauthorizedException('Invalid password');
+    }
 
-    return hash;
+    const accessToken = await this.jwtService.signAsync(
+      { email: user.email, id: user.id },
+      {
+        expiresIn: '1d',
+      },
+    );
+
+    return { accessToken };
   }
 }
