@@ -76,9 +76,8 @@ export class UsersService {
     if (!isMatchedPassword) {
       throw new UnauthorizedException('Invalid password');
     }
-
     const accessToken = await this.jwtService.signAsync(
-      { email: user.email, id: user.id },
+      { email: user.email, id: user.id, role: user.role },
       {
         expiresIn: '1d',
       },

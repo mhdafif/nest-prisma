@@ -1,10 +1,12 @@
 import {
   IsBoolean,
   IsEmail,
+  IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
 } from 'class-validator';
+import { Role } from 'src/roles/roles.enum';
 
 export class CreateUserDTO {
   @IsEmail()
@@ -26,6 +28,10 @@ export class CreateUserDTO {
   @IsBoolean()
   @IsOptional()
   blocked: boolean;
+
+  @IsEnum(Role)
+  @IsOptional()
+  role: Role;
 }
 
 export class LoginDTO {

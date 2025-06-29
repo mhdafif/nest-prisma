@@ -8,11 +8,17 @@ import {
 } from '@nestjs/common';
 import { CreateUserDTO, LoginDTO } from './user-dto';
 import { UsersService } from './users.service';
-import { UsersGuard } from './users.guard';
+import { AuthGuard } from '../auth/auth.guard';
+import { Roles } from 'src/roles/roles.decorator';
+import { Role } from 'src/roles/roles.enum';
+import { RolesGuard } from 'src/roles/roles.guard';
+import { Public } from 'src/public/public.decorator';
 
 @Controller('users')
 export class UsersController {
   constructor(private userService: UsersService) {}
+
+  @Public()
   @Post('/signup')
   async create(
     @Body()
@@ -25,6 +31,7 @@ export class UsersController {
     };
   }
 
+  @Public()
   @Post('/login')
   async login(
     @Body()
@@ -33,7 +40,8 @@ export class UsersController {
     return await this.userService.login(loginDTO);
   }
 
-  @UseGuards(UsersGuard)
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.User, Role.Admin, Role.SuperAdmin)
   @Get('/profile')
   async getProfile(@Request() req: { user: any }) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
